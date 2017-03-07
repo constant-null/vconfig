@@ -33,6 +33,10 @@ func unmarshal(v reflect.Value, t tagInfo) error {
 		v = v.Elem()
 	}
 
+	if t.Default != "" {
+		viper.SetDefault(t.Name, t.Default)
+	}
+
 	if !viper.IsSet(t.Name) && t.Required {
 		return fmt.Errorf("Variable %s is missing", t.Name)
 	}
@@ -70,21 +74,20 @@ func unmarshal(v reflect.Value, t tagInfo) error {
 
 type tagInfo struct {
 	Name     string
+	Default  string
 	Required bool
 }
 
 func parseTag(f reflect.StructField, prefix string) tagInfo {
-	t := f.Tag.Get("vconfig")
-
-	s := make([]string, 2)
-	copy(s, strings.Split(t, `,`))
-	if s[0] == "" {
-		s[0] = f.Name
+	name := f.Tag.Get("vconfig")
+	if name == "" {
+		name = f.Name
 	}
 
 	tag := tagInfo{}
-	tag.Name = strings.Trim(strings.Join([]string{prefix, strings.ToLower(s[0])}, "."), ".")
-	tag.Required, _ = strconv.ParseBool(s[1])
+	tag.Name = strings.Trim(strings.Join([]string{prefix, strings.ToLower(name)}, "."), ".")
+	tag.Required, _ = strconv.ParseBool(f.Tag.Get("required"))
+	tag.Default = f.Tag.Get("default")
 
 	return tag
 }

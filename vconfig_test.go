@@ -9,16 +9,17 @@ import (
 )
 
 type Test struct {
+	Default  string `required:"true" default:"def"`
 	Bool     bool
 	Float64  float64
-	Str      string `vconfig:",true"`
+	Str      string `required:"true"`
 	Sub      sub
 	usub     sub
 	SrtSlice []string `vconfig:"str_slice"`
 }
 
 type sub struct {
-	Int       int    `vconfig:",true"`
+	Int       int    `default:"true"`
 	SomeStaff string `vconfig:"some_staff"`
 }
 
@@ -49,6 +50,7 @@ func TestUmarshal(t *testing.T) {
 	}
 
 	expected := Test{
+		"def",
 		true,
 		1.01,
 		"strs",
@@ -58,7 +60,7 @@ func TestUmarshal(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(expected, *test) {
-		t.Fail()
+		t.Error("Incorrect unmarshaling")
 	}
 }
 
@@ -77,7 +79,7 @@ func TestUnmarshalErr(t *testing.T) {
 }
 
 func TestParseTag(t *testing.T) {
-	field1 := reflect.StructField{Name: "Test", Tag: reflect.StructTag(`vconfig:"field1,true"`)}
+	field1 := reflect.StructField{Name: "Test", Tag: reflect.StructTag(`vconfig:"field1" required:"true"`)}
 	tag1 := parseTag(field1, "pref")
 
 	if tag1.Name != "pref.field1" || tag1.Required != true {
@@ -91,17 +93,17 @@ func TestParseTag(t *testing.T) {
 		t.Error("Parsing error", "")
 	}
 
-	field3 := reflect.StructField{Name: "Test", Tag: reflect.StructTag(`vconfig:",true"`)}
+	field3 := reflect.StructField{Name: "Test", Tag: reflect.StructTag(`required:"true"`)}
 	tag3 := parseTag(field3, "pref")
 
 	if tag3.Name != "pref.test" || tag3.Required != true {
 		t.Error("Parsing error")
 	}
 
-	field4 := reflect.StructField{Name: "Test"}
+	field4 := reflect.StructField{Name: "Test", Tag: reflect.StructTag(`default:"default"`)}
 	tag4 := parseTag(field4, "")
 
-	if tag4.Name != "test" || tag4.Required != false {
+	if tag4.Name != "test" || tag4.Required != false || tag4.Default != "default" {
 		t.Error("Parsing error")
 	}
 }
