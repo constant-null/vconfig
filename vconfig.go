@@ -10,9 +10,12 @@ import (
 	"github.com/spf13/viper"
 )
 
-func Unmarshal(out interface{}) error {
-	configure()
+func init() {
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
+}
 
+func Unmarshal(out interface{}) error {
 	v := reflect.ValueOf(out)
 	if v.Kind() != reflect.Ptr || v.IsNil() {
 		return errors.New("Value should be a pointer")
@@ -29,7 +32,7 @@ func unmarshal(v reflect.Value, t tagInfo) error {
 	}
 
 	if !viper.IsSet(t.Name) && t.Required {
-		return fmt.Errorf("Variable %s is missing", v.Elem())
+		return fmt.Errorf("Variable %s is missing", t.Name)
 	}
 
 	switch v.Kind() {
@@ -82,12 +85,4 @@ func parseTag(f reflect.StructField, prefix string) tagInfo {
 	tag.Required, _ = strconv.ParseBool(s[1])
 
 	return tag
-}
-
-func configure() {
-	viper.SetConfigFile("config")
-	viper.AddConfigPath(".")
-	viper.SetEnvPrefix("TEST")
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
 }

@@ -1,16 +1,19 @@
 package vconfig
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/spf13/viper"
 )
 
 type Test struct {
+	Bool     bool
+	Float64  float64
 	Str      string `vconfig:",true"`
 	Sub      sub
-	sub      sub
+	usub     sub
 	SrtSlice []string `vconfig:"str_slice"`
 }
 
@@ -19,18 +22,58 @@ type sub struct {
 	SomeStaff string `vconfig:"some_staff"`
 }
 
-func TestParse(t *testing.T) {
+func TestMain(m *testing.M) {
+	viper.SetConfigFile("config")
+	viper.AddConfigPath(".")
+	viper.SetEnvPrefix("TEST")
+
+	os.Setenv("TEST_BOOL", "true")
+	os.Setenv("TEST_FLOAT64", "1.01")
 	os.Setenv("TEST_STR", "strs")
 	os.Setenv("TEST_STR_SLICE", "val1 val2")
 	os.Setenv("TEST_SUB_INT", "123")
 	os.Setenv("TEST_SUB_SOME_STAFF", "test")
-	configure()
 
+	retCode := m.Run()
+
+	os.Clearenv()
+	os.Exit(retCode)
+}
+
+func TestUmarshal(t *testing.T) {
 	test := &Test{}
 	err := Unmarshal(test)
-	fmt.Println(err)
 
-	fmt.Printf("%+v", test)
+	if err != nil {
+		t.Errorf("Error while unmarshaling config %s", err)
+	}
+
+	expected := Test{
+		true,
+		1.01,
+		"strs",
+		sub{123, "test"},
+		sub{},
+		[]string{"val1", "val2"},
+	}
+
+	if !reflect.DeepEqual(expected, *test) {
+		t.Fail()
+	}
+}
+
+func TestUnmarshalErr(t *testing.T) {
+	err := Unmarshal(Test{})
+	if err == nil {
+		t.Error("An error should occure")
+	}
+
+	os.Unsetenv("TEST_STR")
+
+	err = Unmarshal(&Test{})
+	if err == nil {
+		t.Error("An error should occure")
+	}
 }
 
 func TestParseTag(t *testing.T) {
