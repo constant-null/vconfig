@@ -16,6 +16,8 @@ func init() {
 }
 
 func Unmarshal(out interface{}) error {
+	viper.ReadInConfig()
+
 	v := reflect.ValueOf(out)
 	if v.Kind() != reflect.Ptr || v.IsNil() {
 		return errors.New("Value should be a pointer")
